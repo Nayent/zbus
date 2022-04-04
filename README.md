@@ -1,5 +1,3 @@
-# ZBUS
-
 # How to use
 
 First, clone the repository, then install the requirements using
