@@ -78,6 +78,13 @@ def tipo_3(bus2, bus1, bus, z, qnt_bus):
         z
     )
 
+    bus = kron_reduc(bus, qnt_bus)
+    
+    return bus
+
+
+def kron_reduc(bus, qnt_bus):
+
     bus = (
         bus[:qnt_bus, :qnt_bus] -
         bus[:qnt_bus, qnt_bus:].dot(
@@ -86,7 +93,7 @@ def tipo_3(bus2, bus1, bus, z, qnt_bus):
             bus[qnt_bus:, :qnt_bus]
         )
     )
-    
+
     return bus
 
 
