@@ -91,7 +91,6 @@ def tipo_3(bus2, bus1, bus, z, qnt_bus):
 
 
 def get_file():
-    # file = '/home/nomura/Documents/Github/Python/utfpr/SEP2_zbus/files/exemplo_1_zbus.ods'
     file = '/home/guilherme.leite/Documents/Github/Python/zbus/files/exercicio_fixacao.ods'
 
     if not file:
