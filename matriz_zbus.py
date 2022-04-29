@@ -83,18 +83,21 @@ def tipo_3(bus2, bus1, bus, z, qnt_bus):
     return bus
 
 
-def kron_reduc(bus, qnt_bus):
+def kron_reduc(zbus, size_zbus):
 
-    bus = (
-        bus[:qnt_bus, :qnt_bus] -
-        bus[:qnt_bus, qnt_bus:].dot(
-            np.linalg.inv(bus[qnt_bus:len(bus), qnt_bus:len(bus)])
+    zbus = (
+        zbus[:size_zbus, :size_zbus] -
+        zbus[:size_zbus, size_zbus:].dot(
+            np.linalg.inv(zbus[size_zbus:len(zbus), size_zbus:len(zbus)])
         ).dot(
-            bus[qnt_bus:, :qnt_bus]
+            zbus[size_zbus:, :size_zbus]
         )
     )
 
-    return bus
+    return zbus
+
+
+
 
 
 def get_file():
