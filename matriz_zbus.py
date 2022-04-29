@@ -38,18 +38,9 @@ def model_bus(bus, data, qnt_bus):
         elif int(row[0]) == 2:
             bus = tipo_2(row[1], row[2], bus, row[3])
         elif int(row[0]) == 3:
-            bus = tipo_3(row[1], row[2], bus, row[3])
+            bus = tipo_3(row[1], row[2], bus, row[3], qnt_bus)
         else:
             print(f'Wrong type in line {_row[0] + 1}, please fix it!')
-    
-    bus = (
-        bus[:qnt_bus, :qnt_bus] -
-        bus[:qnt_bus, qnt_bus:].dot(
-            np.linalg.inv(bus[qnt_bus:len(bus), qnt_bus:len(bus)])
-        ).dot(
-            bus[qnt_bus:, :qnt_bus]
-        )
-    )
     
     return bus
 
@@ -70,7 +61,7 @@ def tipo_2(new_bus, old_bus, bus, z):
     return bus
 
 
-def tipo_3(bus2, bus1, bus, z):
+def tipo_3(bus2, bus1, bus, z, qnt_bus):
     new_column = bus[:, bus2 - 1] - bus[:, bus1 - 1]
     bus = np.hstack([bus, np.atleast_2d(new_column).T])
 
@@ -86,13 +77,22 @@ def tipo_3(bus2, bus1, bus, z):
         bus[bus2 - 1, bus1 - 1] +
         z
     )
+
+    bus = (
+        bus[:qnt_bus, :qnt_bus] -
+        bus[:qnt_bus, qnt_bus:].dot(
+            np.linalg.inv(bus[qnt_bus:len(bus), qnt_bus:len(bus)])
+        ).dot(
+            bus[qnt_bus:, :qnt_bus]
+        )
+    )
     
     return bus
 
 
 def get_file():
     # file = '/home/nomura/Documents/Github/Python/utfpr/SEP2_zbus/files/exemplo_1_zbus.ods'
-    file = '/home/nomura/Documents/Github/Python/utfpr/SEP2_zbus/files/exercicio_fixacao.ods'
+    file = '/home/guilherme.leite/Documents/Github/Python/zbus/files/exercicio_fixacao.ods'
 
     if not file:
         file = input('Insert file directory: ')
