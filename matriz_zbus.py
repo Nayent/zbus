@@ -1,3 +1,4 @@
+# import unicodecsv
 import time
 
 import numpy as np
@@ -97,7 +98,20 @@ def kron_reduc(zbus, size_zbus):
     return zbus
 
 
+# def write_csv(csv_destiny, data, fields=None):
+#     with open(csv_destiny, 'wb') as file:
 
+#         csv_writer = unicodecsv.DictWriter(
+#             file,
+#             fieldnames=fields,
+#             lineterminator='\n',
+#             delimiter='|'
+#         )
+#         if fields:
+#             csv_writer.writeheader()
+
+#         for row in data:
+#             csv_writer.writerow(row)
 
 
 def get_file():
