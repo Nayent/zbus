@@ -1,3 +1,4 @@
+import os
 # import unicodecsv
 import time
 
@@ -8,10 +9,11 @@ import pandas as pd
 def main():
     start = time.time()
 
-    data = get_file()
+    data, file_name = get_file()
     if data.empty:
         print('File format is wrong, only accept CSV, XLSX or ODS formats with HEADER or skip first line!')
         return
+    csv_destiny = os.path.join(os.getcwd(), 'files', 'zbus_solved', file_name)
     
     qnt_bus = get_qnt_bus(data)
 
@@ -23,8 +25,9 @@ def main():
 
     end = time.time()
 
-    print(final_bus)
+    # print(final_bus)
 
+    write_csv(csv_destiny, final_bus)
 
     print(f'\nExecution Time without reading_file = {end - code} seconds')
     print(f'\nExecution Time with reading_file = {end - start} seconds\n')
@@ -98,27 +101,30 @@ def kron_reduc(zbus, size_zbus):
     return zbus
 
 
-# def write_csv(csv_destiny, data, fields=None):
-#     with open(csv_destiny, 'wb') as file:
+def write_csv(csv_destiny, data, fields=None):
+    # with open(csv_destiny, 'wb') as file:
 
-#         csv_writer = unicodecsv.DictWriter(
-#             file,
-#             fieldnames=fields,
-#             lineterminator='\n',
-#             delimiter='|'
-#         )
-#         if fields:
-#             csv_writer.writeheader()
+    #     csv_writer = unicodecsv.DictWriter(
+    #         file,
+    #         fieldnames=fields,
+    #         lineterminator='\n',
+    #         delimiter='|'
+    #     )
+    #     if fields:
+    #         csv_writer.writeheader()
 
-#         for row in data:
-#             csv_writer.writerow(row)
+    #     for row in data:
+    #         csv_writer.writerow(row)
+
+    np.savetxt(csv_destiny + '.csv', data, fmt="%.8f", delimiter='|')
 
 
 def get_file():
-    file = '/home/guilherme.leite/Documents/Github/Python/zbus/files/exercicio_fixacao.ods'
+    file = '/home/guilherme.leite/Documents/Github/Python/zbus/files/data/exercicio_fixacao.ods'
 
     if not file:
         file = input('Insert file directory: ')
+    file_name = file.split('/')[-1].split('.')[0]
 
     if '.csv' in file:
         delimiter = input('Insert csv delimiter: ')
@@ -130,7 +136,7 @@ def get_file():
     else:
         return pd.Series()
     
-    return data
+    return data, file_name
 
 
 def get_qnt_bus(data):
