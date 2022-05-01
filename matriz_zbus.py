@@ -116,7 +116,7 @@ def write_csv(csv_destiny, data, fields=None):
     #     for row in data:
     #         csv_writer.writerow(row)
 
-        np.savetxt(csv_destiny + '.csv', data, fmt="%.8f", delimiter='|')
+    np.savetxt(csv_destiny + '.csv', data, fmt="%.8f", delimiter='|')
 
 
 def get_file():
