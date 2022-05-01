@@ -25,7 +25,7 @@ def main():
 
     end = time.time()
 
-    print(final_bus)
+    # print(final_bus)
 
     write_csv(csv_destiny, final_bus)
 
@@ -102,27 +102,26 @@ def kron_reduc(zbus, size_zbus):
 
 
 def write_csv(csv_destiny, data, fields=None):
-    with open(csv_destiny, 'wb') as file:
+    # with open(csv_destiny, 'wb') as file:
 
-        csv_writer = unicodecsv.DictWriter(
-            file,
-            fieldnames=fields,
-            lineterminator='\n',
-            delimiter='|'
-        )
-        if fields:
-            csv_writer.writeheader()
+        # csv_writer = unicodecsv.DictWriter(
+        #     file,
+        #     fieldnames=fields,
+        #     lineterminator='\n',
+        #     delimiter='|'
+        # )
+        # if fields:
+        #     csv_writer.writeheader()
 
-        import ipdb
-        ipdb.set_trace()
+        # for row in data:
+        #     csv_writer.writerow(row)
 
-        for row in data:
-            csv_writer.writerow(row)
+        np.savetxt(csv_destiny + '.csv', data, fmt="%.8f", delimiter='|')
 
 
 def get_file():
     file = '/home/guilherme.leite/Documents/Github/Python/zbus/files/data/exercicio_fixacao.ods'
-    file_name = file.split('/')[-1]
+    file_name = file.split('/')[-1].split('.')[0]
 
     if not file:
         file = input('Insert file directory: ')
