@@ -121,7 +121,7 @@ def write_csv(csv_destiny, data, fields=None):
 
 
 def get_file():
-    file = '/home/guilherme.leite/Documents/Github/Python/zbus/files/exercicio_fixacao.ods'
+    file = '/home/guilherme.leite/Documents/Github/Python/zbus/files/data/exercicio_fixacao.ods'
     file_name = file.split('/')[-1]
 
     if not file:
