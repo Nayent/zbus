@@ -2,6 +2,8 @@ import os
 import pandas as pd
 import numpy as np
 
+from model import de_para
+
 qnt_bus = 37
 
 
@@ -64,7 +66,6 @@ def tipo_3(bus2, bus1, bus, z):
 
 
 def kron_reduc(zbus):
-
     zbus = (
         zbus[:qnt_bus, :qnt_bus] -
         zbus[:qnt_bus, qnt_bus:].dot(
@@ -75,3 +76,57 @@ def kron_reduc(zbus):
     )
 
     return zbus
+
+
+def model_bus(data):
+    bus = np.zeros((qnt_bus, qnt_bus))
+    already_bars = set()
+    file_aux = 0
+
+    for data_ in data:
+        for index, row in data_.iterrows():
+            if row.get('Barras tipo 1'):
+                num_bar = de_para[int(row['Barras tipo 1'])]['n_bar']
+                bus = tipo_1(num_bar, bus, row['X+'])
+                already_bars.add(int(row['Barras tipo 1']))
+            elif int(row['De']) in already_bars and int(row['Para']) in already_bars:
+                num_bar1 = de_para[int(row['De'])]['n_bar']
+                num_bar2 = de_para[int(row['Para'])]['n_bar']
+                bus = tipo_3(num_bar1, num_bar2, bus, row['X+  pu'])
+                bus_zero = tipo_3(num_bar1, num_bar2, bus_zero, row['X0  pu'])
+            else:
+                if int(row['De']) in already_bars:
+                    num_bar1 = de_para[int(row['De'])]['n_bar']
+                    num_bar2 = de_para[int(row['Para'])]['n_bar']
+                else:
+                    num_bar1 = de_para[int(row['Para'])]['n_bar']
+                    num_bar2 = de_para[int(row['De'])]['n_bar']
+                bus = tipo_2(num_bar2, num_bar1, bus, row['X+  pu'])
+                bus_zero = tipo_2(num_bar2, num_bar1, bus_zero, row['X0  pu'])
+                already_bars.add(int(row['De']))
+                already_bars.add(int(row['Para']))
+
+        file_aux += 1
+        if file_aux == 1:
+            bus_zero = bus
+
+    np.savetxt("bus_postiva.csv", bus, delimiter="|")
+    np.savetxt("bus_zero.csv", bus_zero, delimiter="|")
+    return bus, bus_zero
+
+
+# Faltas
+def equilibrado(zbus, ref_bus):
+    pass
+
+
+def monofasica(zbus, ref_bus):
+    pass
+
+
+def bifasica(zbus, ref_bus):
+    pass
+
+
+def bifasica_terra(zbus, ref_bus):
+    pass
