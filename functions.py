@@ -14,6 +14,8 @@ matrix_t = np.array((
     [1, a, a**2]
 ))
 
+linhas = 0
+
 
 def get_file():
     file_names = [
@@ -228,3 +230,20 @@ def fortescue(tensoes):
         tensoes_fase[t][2] = abs(np.dot(matrix_t, temp_tensoes)[2][0])
 
     return tensoes_fase
+
+
+def correntes(tensoes_fase):
+    correntes = {}
+    for l in range(len(linhas)):
+        cdp = '-'.join(str(linhas[l]), str(linhas[l]['Para']))
+
+        de = de_para[linhas[l]['De']]['n_bar']
+        para = de_para[linhas[l]['Para']]['n_bar']
+
+        correntes[cdp] = [
+            (tensoes_fase[de][0] - tensoes_fase[para][0]) / linhas[l]['impedancia'],
+            (tensoes_fase[de][1] - tensoes_fase[para][1]) / linhas[l]['impedancia'],
+            (tensoes_fase[de][2] - tensoes_fase[para][2]) / linhas[l]['impedancia'],
+        ]
+
+    return correntes
