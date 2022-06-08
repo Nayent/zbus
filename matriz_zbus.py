@@ -31,7 +31,7 @@ def main():
             'Bifasica       (b)\n'
             'Bifasica Terra (bt)\n'
             'Trifasica      (t)\n'
-            'Exit      (e)\n\n'
+            'Exit           (e)\n\n'
             '-> '
         )
 

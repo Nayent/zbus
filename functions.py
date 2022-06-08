@@ -192,18 +192,25 @@ def bifasica_terra(pos_neg, zero, ref_bus, zf=0):
 
     ia_seq = 1 / zeq
 
-    ia_fase = 0
 
     tensoes = np.zeros((qnt_bus, 3))
 
     for t in range(qnt_bus):
         tensoes[t][0] = 1 - (pos_neg[t][index_zbus] * ia_seq) # Positivo
-        tensoes[t][1] = - pos_neg[t][index_zbus] * ia_seq # negativo
-        tensoes[t][2] = - zero[t][index_zbus] * ia_seq # Zero
+        tensoes[t][1] = tensoes[t][0] # Negativo
+        tensoes[t][2] = tensoes[t][0] # Zero
 
-    tensoes_fase = fortescue(tensoes, tensoes_fase)
+    i_seq = [
+        - tensoes[index_zbus][index_zbus] / (zero[index_zbus][index_zbus] + 3*zf),
+        ia_seq,
+        - tensoes[index_zbus][index_zbus] / pos_neg[index_zbus][index_zbus],
+    ]
 
-    return ia_fase, tensoes_fase
+    i_fase = abs(np.dot(matrix_t, i_seq))
+
+    tensoes_fase = fortescue(tensoes)
+
+    return i_fase, tensoes_fase
 
 
 def fortescue(tensoes):
