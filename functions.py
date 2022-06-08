@@ -1,3 +1,4 @@
+import math
 import os
 import pandas as pd
 import numpy as np
@@ -5,6 +6,13 @@ import numpy as np
 from model import de_para
 
 qnt_bus = 37
+
+a = (-0.5 + 0.8660254037844386j)
+matrix_t = np.array((
+    [1, 1, 1],
+    [1, a**2, a],
+    [1, a, a**2]
+))
 
 
 def get_file():
@@ -25,7 +33,7 @@ def get_file():
             continue
 
         all_data.append(data)
-    
+
     return all_data
 
 
@@ -61,7 +69,7 @@ def tipo_3(bus2, bus1, bus, z):
     )
 
     bus = kron_reduc(bus)
-    
+
     return bus
 
 
@@ -116,17 +124,100 @@ def model_bus(data):
 
 
 # Faltas
-def equilibrado(zbus, ref_bus):
-    pass
+def trifasico(pos_neg, ref_bus):
+    index_zbus = de_para[ref_bus]['n_bar']
+
+    icc = 1 / (pos_neg[index_zbus][index_zbus])
+
+    tensoes = np.zeros((qnt_bus, 1))
+
+    for t in range(qnt_bus):
+        tensoes[t][0] = 1 - (pos_neg[t][index_zbus] / pos_neg[index_zbus][index_zbus])
+
+    return icc, tensoes
 
 
-def monofasica(zbus, ref_bus):
-    pass
+def monofasica(pos_neg, zero, ref_bus, zf=0):
+    index_zbus = de_para[ref_bus]['n_bar']
+
+    ia_seq = 1/(
+        2 * pos_neg[index_zbus][index_zbus] + zero[index_zbus][index_zbus] + 3 * zf
+    )
+
+    ia_fase = ia_seq * 3
+
+    tensoes = np.zeros((qnt_bus, 3))
+
+    for t in range(qnt_bus):
+        tensoes[t][0] = 1 - (pos_neg[t][index_zbus] * ia_seq) # Positivo
+        tensoes[t][1] = - pos_neg[t][index_zbus] * ia_seq # negativo
+        tensoes[t][2] = - zero[t][index_zbus] * ia_seq # Zero
+
+    tensoes_fase = fortescue(tensoes)
+
+    return ia_fase, tensoes_fase
 
 
-def bifasica(zbus, ref_bus):
-    pass
+def bifasica(pos_neg, ref_bus, zf=0):
+    index_zbus = de_para[ref_bus]['n_bar']
+
+    ia_seq = 1/(
+        2 * pos_neg[index_zbus][index_zbus] + zf
+    )
+
+    i_fase = [
+        0,
+        - ia_seq * math.sqrt(3),
+        ia_seq * math.sqrt(3)
+    ]
+
+    tensoes = np.zeros((qnt_bus, 3))
+
+    for t in range(qnt_bus):
+        tensoes[t][0] = 1 - (pos_neg[t][index_zbus] * ia_seq) # Positivo
+        tensoes[t][1] = - pos_neg[t][index_zbus] * ia_seq # negativo
+
+    tensoes_fase = fortescue(tensoes)
+
+    return i_fase, tensoes_fase
 
 
-def bifasica_terra(zbus, ref_bus):
-    pass
+def bifasica_terra(pos_neg, zero, ref_bus, zf=0):
+    index_zbus = de_para[ref_bus]['n_bar']
+
+    zkk_p = pos_neg[index_zbus][index_zbus]
+    zkk_z = zero[index_zbus][index_zbus]
+
+    zeq = zkk_p + (zkk_p * (zkk_z + 3*zf))/(zkk_p + zkk_z + 3*zf)
+
+    ia_seq = 1 / zeq
+
+    ia_fase = 0
+
+    tensoes = np.zeros((qnt_bus, 3))
+
+    for t in range(qnt_bus):
+        tensoes[t][0] = 1 - (pos_neg[t][index_zbus] * ia_seq) # Positivo
+        tensoes[t][1] = - pos_neg[t][index_zbus] * ia_seq # negativo
+        tensoes[t][2] = - zero[t][index_zbus] * ia_seq # Zero
+
+    tensoes_fase = fortescue(tensoes, tensoes_fase)
+
+    return ia_fase, tensoes_fase
+
+
+def fortescue(tensoes):
+    tensoes_fase = np.zeros((qnt_bus, 3))
+
+    for t in range(qnt_bus):
+        temp_tensoes = np.array((
+            [tensoes[t][2]],
+            [tensoes[t][0]],
+            [tensoes[t][1]],
+        ))
+
+        tensoes_fase[t][0] = abs(np.dot(matrix_t, temp_tensoes)[0][0])
+        tensoes_fase[t][1] = abs(np.dot(matrix_t, temp_tensoes)[1][0])
+        tensoes_fase[t][2] = abs(np.dot(matrix_t, temp_tensoes)[2][0])
+
+    return tensoes_fase
