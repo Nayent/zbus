@@ -185,3 +185,7 @@ de_para = {
         'n_bar': 34
     }
 }
+
+index_name = {}
+for key, item in de_para.items():
+    index_name[item['n_bar'] - 1] = f'{item["name"]} ({key})'

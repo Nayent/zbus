@@ -20,7 +20,7 @@ linhas = 0
 def get_file():
     file_names = [
         os.path.join(os.getcwd(), 'files', 'data', 'barras_tipo_1.xlsx'),
-        os.path.join(os.getcwd(), 'files', 'data', 'dados_de_linha.xlsx'),
+        os.path.join(os.getcwd(), 'files', 'data', 'Dados de linha.xlsx'),
     ]
 
     all_data = []
@@ -35,8 +35,34 @@ def get_file():
             continue
 
         all_data.append(data)
+    
+    impedancias = {}
+    for index_, row in all_data[1].iterrows():
+        key_ = '{}-{}'.format(
+            int(row['De']),
+            int(row['Para']),
+        )
 
-    return all_data
+        if key_ in impedancias:
+            pn_old = impedancias[key_]['pn']
+            zero_old = impedancias[key_]['zero']
+
+            xt_pn = (float(row['X+ (pu)']) * pn_old) / float((row['X+ (pu)']) + pn_old)
+            xt_zero = (zero_old * float(row['X0 (pu)'])) / (zero_old + float(row['X0 (pu)']))
+        else:
+            xt_pn = float(row['X+ (pu)'])
+            xt_zero = float(row['X0 (pu)'])
+        
+        impedancias[key_] = {
+            'pn': xt_pn,
+            'zero': xt_zero,
+        }
+
+    return impedancias, all_data
+
+
+def round_(value):
+    return round(value, 3)
 
 
 def tipo_1(new_bus, bus, z):
@@ -102,17 +128,20 @@ def model_bus(data):
             elif int(row['De']) in already_bars and int(row['Para']) in already_bars:
                 num_bar1 = de_para[int(row['De'])]['n_bar']
                 num_bar2 = de_para[int(row['Para'])]['n_bar']
-                bus = tipo_3(num_bar1, num_bar2, bus, row['X+  pu'])
-                bus_zero = tipo_3(num_bar1, num_bar2, bus_zero, row['X0  pu'])
+                bus = tipo_3(num_bar1, num_bar2, bus, row['X+ (pu)'])
+                bus_zero = tipo_3(num_bar1, num_bar2, bus_zero, row['X0 (pu)'])
             else:
                 if int(row['De']) in already_bars:
                     num_bar1 = de_para[int(row['De'])]['n_bar']
                     num_bar2 = de_para[int(row['Para'])]['n_bar']
-                else:
+                elif int(row['Para']) in already_bars:
                     num_bar1 = de_para[int(row['Para'])]['n_bar']
                     num_bar2 = de_para[int(row['De'])]['n_bar']
-                bus = tipo_2(num_bar2, num_bar1, bus, row['X+  pu'])
-                bus_zero = tipo_2(num_bar2, num_bar1, bus_zero, row['X0  pu'])
+                else:
+                    import ipdb
+                    ipdb.set_trace()
+                bus = tipo_2(num_bar2, num_bar1, bus, row['X+ (pu)'])
+                bus_zero = tipo_2(num_bar2, num_bar1, bus_zero, row['X0 (pu)'])
                 already_bars.add(int(row['De']))
                 already_bars.add(int(row['Para']))
 
@@ -126,8 +155,8 @@ def model_bus(data):
 
 
 # Faltas
-def trifasico(pos_neg, ref_bus):
-    index_zbus = de_para[ref_bus]['n_bar']
+def trifasico(pos_neg, ref_bus, impedancias):
+    index_zbus = de_para[ref_bus]['n_bar'] - 1
 
     icc = 1 / (pos_neg[index_zbus][index_zbus])
 
@@ -136,11 +165,18 @@ def trifasico(pos_neg, ref_bus):
     for t in range(qnt_bus):
         tensoes[t][0] = 1 - (pos_neg[t][index_zbus] / pos_neg[index_zbus][index_zbus])
 
-    return icc, tensoes
+    corrente = {}
+    for key, items in impedancias.items():
+        de = de_para[int(key.split('-')[0])]['n_bar'] - 1
+        para = de_para[int(key.split('-')[1])]['n_bar'] - 1
+
+        corrente[key] = (tensoes[de][0] - tensoes[para][0]) / items['pn']
+
+    return icc, tensoes, corrente
 
 
-def monofasica(pos_neg, zero, ref_bus, zf=0):
-    index_zbus = de_para[ref_bus]['n_bar']
+def monofasica(pos_neg, zero, ref_bus, impedancias, zf=0):
+    index_zbus = de_para[ref_bus]['n_bar'] - 1
 
     ia_seq = 1/(
         2 * pos_neg[index_zbus][index_zbus] + zero[index_zbus][index_zbus] + 3 * zf
@@ -157,11 +193,13 @@ def monofasica(pos_neg, zero, ref_bus, zf=0):
 
     tensoes_fase = fortescue(tensoes)
 
-    return ia_fase, tensoes_fase
+    corrente = correntes(tensoes, impedancias)
+
+    return ia_fase, tensoes_fase, corrente
 
 
-def bifasica(pos_neg, ref_bus, zf=0):
-    index_zbus = de_para[ref_bus]['n_bar']
+def bifasica(pos_neg, ref_bus, impedancias, zf=0):
+    index_zbus = de_para[ref_bus]['n_bar'] - 1
 
     ia_seq = 1/(
         2 * pos_neg[index_zbus][index_zbus] + zf
@@ -177,20 +215,22 @@ def bifasica(pos_neg, ref_bus, zf=0):
 
     for t in range(qnt_bus):
         tensoes[t][0] = 1 - (pos_neg[t][index_zbus] * ia_seq) # Positivo
-        tensoes[t][1] = - pos_neg[t][index_zbus] * ia_seq # negativo
+        tensoes[t][1] = pos_neg[t][index_zbus] * ia_seq # negativo
 
     tensoes_fase = fortescue(tensoes)
 
-    return i_fase, tensoes_fase
+    corrente = correntes(tensoes, impedancias)
+
+    return i_fase, tensoes_fase, corrente
 
 
-def bifasica_terra(pos_neg, zero, ref_bus, zf=0):
-    index_zbus = de_para[ref_bus]['n_bar']
+def bifasica_terra(pos_neg, zero, ref_bus, impedancias):
+    index_zbus = de_para[ref_bus]['n_bar'] - 1
 
     zkk_p = pos_neg[index_zbus][index_zbus]
     zkk_z = zero[index_zbus][index_zbus]
 
-    zeq = zkk_p + (zkk_p * (zkk_z + 3*zf))/(zkk_p + zkk_z + 3*zf)
+    zeq = zkk_p + (zkk_p * zkk_z)/(zkk_p + zkk_z)
 
     ia_seq = 1 / zeq
 
@@ -198,21 +238,26 @@ def bifasica_terra(pos_neg, zero, ref_bus, zf=0):
     tensoes = np.zeros((qnt_bus, 3))
 
     for t in range(qnt_bus):
-        tensoes[t][0] = 1 - (pos_neg[t][index_zbus] * ia_seq) # Positivo
-        tensoes[t][1] = tensoes[t][0] # Negativo
-        tensoes[t][2] = tensoes[t][0] # Zero
+        tensoes[t][0] = 1 - pos_neg[t][index_zbus] * ia_seq # Positivo
+        tensoes[t][1] = pos_neg[t][index_zbus] * ia_seq # Negativo
+        tensoes[t][2] = zero[t][index_zbus] * ia_seq # Zero
+    
+    tensoes[index_zbus][1] = tensoes[index_zbus][0]
+    tensoes[index_zbus][2] = tensoes[index_zbus][0]
 
     i_seq = [
-        - tensoes[index_zbus][index_zbus] / (zero[index_zbus][index_zbus] + 3*zf),
+        - tensoes[index_zbus][0] / (zero[index_zbus][index_zbus]),
         ia_seq,
-        - tensoes[index_zbus][index_zbus] / pos_neg[index_zbus][index_zbus],
+        - tensoes[index_zbus][0] / pos_neg[index_zbus][index_zbus],
     ]
 
     i_fase = abs(np.dot(matrix_t, i_seq))
 
     tensoes_fase = fortescue(tensoes)
 
-    return i_fase, tensoes_fase
+    corrente = correntes(tensoes, impedancias)
+
+    return i_fase, tensoes_fase, corrente
 
 
 def fortescue(tensoes):
@@ -232,18 +277,23 @@ def fortescue(tensoes):
     return tensoes_fase
 
 
-def correntes(tensoes_fase):
-    correntes = {}
-    for l in range(len(linhas)):
-        cdp = '-'.join(str(linhas[l]), str(linhas[l]['Para']))
+def correntes(tensoes_fase, impedancias):
+    corrente = {}
+    corrente_fase = {}
+    for key, items in impedancias.items():
+        de = de_para[int(key.split('-')[0])]['n_bar'] - 1
+        para = de_para[int(key.split('-')[1])]['n_bar'] - 1
 
-        de = de_para[linhas[l]['De']]['n_bar']
-        para = de_para[linhas[l]['Para']]['n_bar']
-
-        correntes[cdp] = [
-            (tensoes_fase[de][0] - tensoes_fase[para][0]) / linhas[l]['impedancia'],
-            (tensoes_fase[de][1] - tensoes_fase[para][1]) / linhas[l]['impedancia'],
-            (tensoes_fase[de][2] - tensoes_fase[para][2]) / linhas[l]['impedancia'],
+        corrente[key] = np.array((
+            (tensoes_fase[de][2] - tensoes_fase[para][2]) / items['zero'],
+            (tensoes_fase[de][0] - tensoes_fase[para][0]) / items['pn'],
+            (tensoes_fase[de][1] - tensoes_fase[para][1]) / items['pn'],
+        ))
+    
+        corrente_fase[key] = [
+            abs(np.dot(matrix_t, corrente[key])[0]),
+            abs(np.dot(matrix_t, corrente[key])[1]),
+            abs(np.dot(matrix_t, corrente[key])[2]),
         ]
 
-    return correntes
+    return corrente_fase
