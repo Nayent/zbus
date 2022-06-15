@@ -160,8 +160,6 @@ def model_bus(data):
         if file_aux == 1:
             bus_zero = bus
 
-    np.savetxt("bus_postiva.csv", bus, delimiter="|")
-    np.savetxt("bus_zero.csv", bus_zero, delimiter="|")
     return bus, bus_zero
 
 
