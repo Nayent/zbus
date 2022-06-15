@@ -1,5 +1,6 @@
 import math
 import os
+from re import I
 import pandas as pd
 import numpy as np
 
@@ -236,22 +237,23 @@ def bifasica_terra(pos_neg, zero, ref_bus, impedancias):
 
 
     tensoes = np.zeros((qnt_bus, 3))
+    tensoes[index_zbus][0] = 1 - pos_neg[index_zbus][index_zbus] * ia_seq
+
+    i_seq = [
+        - tensoes[index_zbus][0] / zero[index_zbus][index_zbus],
+        ia_seq,
+        - tensoes[index_zbus][0] / pos_neg[index_zbus][index_zbus]
+    ]
 
     for t in range(qnt_bus):
         tensoes[t][0] = 1 - pos_neg[t][index_zbus] * ia_seq # Positivo
-        tensoes[t][1] = pos_neg[t][index_zbus] * ia_seq # Negativo
-        tensoes[t][2] = zero[t][index_zbus] * ia_seq # Zero
+        tensoes[t][1] = - pos_neg[t][index_zbus] * i_seq[2] # Negativo
+        tensoes[t][2] = - zero[t][index_zbus] * i_seq[0] # Zero
     
     tensoes[index_zbus][1] = tensoes[index_zbus][0]
     tensoes[index_zbus][2] = tensoes[index_zbus][0]
 
-    i_seq = [
-        - tensoes[index_zbus][0] / (zero[index_zbus][index_zbus]),
-        ia_seq,
-        - tensoes[index_zbus][0] / pos_neg[index_zbus][index_zbus],
-    ]
-
-    i_fase = abs(np.dot(matrix_t, i_seq))
+    i_fase = list(map(round_, abs(np.dot(matrix_t, i_seq))))
 
     tensoes_fase = fortescue(tensoes)
 
@@ -277,7 +279,7 @@ def fortescue(tensoes):
     return tensoes_fase
 
 
-def correntes(tensoes_fase, impedancias):
+def correntes(tensoes, impedancias):
     corrente = {}
     corrente_fase = {}
     for key, items in impedancias.items():
@@ -285,15 +287,15 @@ def correntes(tensoes_fase, impedancias):
         para = de_para[int(key.split('-')[1])]['n_bar'] - 1
 
         corrente[key] = np.array((
-            (tensoes_fase[de][2] - tensoes_fase[para][2]) / items['zero'],
-            (tensoes_fase[de][0] - tensoes_fase[para][0]) / items['pn'],
-            (tensoes_fase[de][1] - tensoes_fase[para][1]) / items['pn'],
+            (tensoes[de][2] - tensoes[para][2]) / items['zero'],
+            (tensoes[de][0] - tensoes[para][0]) / items['pn'],
+            (tensoes[de][1] - tensoes[para][1]) / items['pn'],
         ))
     
         corrente_fase[key] = [
-            abs(np.dot(matrix_t, corrente[key])[0]),
-            abs(np.dot(matrix_t, corrente[key])[1]),
-            abs(np.dot(matrix_t, corrente[key])[2]),
+            np.dot(matrix_t, corrente[key])[0],
+            np.dot(matrix_t, corrente[key])[1],
+            np.dot(matrix_t, corrente[key])[2],
         ]
 
     return corrente_fase
