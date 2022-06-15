@@ -9,20 +9,10 @@ from functions import (
 )
 
 def main():
-    start = time.time()
 
     impedancias, data = get_file()
 
-    code = time.time()
-
     pos_neg, zero = model_bus(data)
-
-    end = time.time()
-
-    # print(final_bus)
-
-    # print(f'\nExecution Time without reading_file = {end - code} seconds')
-    # print(f'\nExecution Time with reading_file = {end - start} seconds\n')
 
     while True:
         falta = input(
@@ -40,6 +30,7 @@ def main():
 
         barra_falta = int(input('\nBarra na qual ocorreu a falta: '))
 
+        # Mostrando na tela do resultados obtidos de acordo com a falta escolhida
         if falta == 'm':
             print('Para a falta do tipo Monofásica')
             i_fase, tensoes_fase, correntes = monofasica(pos_neg, zero, barra_falta, impedancias)

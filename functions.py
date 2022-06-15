@@ -6,8 +6,10 @@ import numpy as np
 
 from model import de_para
 
+# Tamanho da Zbus
 qnt_bus = 37
 
+# Matriz de transformação
 a = (-0.5 + 0.8660254037844386j)
 matrix_t = np.array((
     [1, 1, 1],
@@ -19,6 +21,7 @@ linhas = 0
 
 
 def get_file():
+    # Ler arquivos dos dados
     file_names = [
         os.path.join(os.getcwd(), 'files', 'data', 'barras_tipo_1.xlsx'),
         os.path.join(os.getcwd(), 'files', 'data', 'Dados de linha.xlsx'),
@@ -37,6 +40,7 @@ def get_file():
 
         all_data.append(data)
     
+    # Montando o dicionario das impedancias de linha
     impedancias = {}
     for index_, row in all_data[1].iterrows():
         key_ = '{}-{}'.format(
@@ -63,16 +67,19 @@ def get_file():
 
 
 def round_(value):
+    # Função para arrendonda com 3 casas decimais
     return round(value, 3)
 
 
 def tipo_1(new_bus, bus, z):
+    # Inserir elemento na zbus tipo 1
     bus[new_bus - 1][new_bus - 1] = z
 
     return bus
 
 
 def tipo_2(new_bus, old_bus, bus, z):
+    # Inserir elemento na zbus tipo 2
     bus[new_bus - 1] = bus[old_bus - 1]
     bus[:, new_bus - 1] = bus[:, old_bus - 1]
     bus[new_bus - 1, new_bus - 1] = bus[old_bus - 1, old_bus - 1] + z
@@ -81,6 +88,7 @@ def tipo_2(new_bus, old_bus, bus, z):
 
 
 def tipo_3(bus2, bus1, bus, z):
+    # Inserir elemento na zbus tipo 3
     new_column = bus[:, bus2 - 1] - bus[:, bus1 - 1]
     bus = np.hstack([bus, np.atleast_2d(new_column).T])
 
@@ -103,6 +111,7 @@ def tipo_3(bus2, bus1, bus, z):
 
 
 def kron_reduc(zbus):
+    # função da redução de kron
     zbus = (
         zbus[:qnt_bus, :qnt_bus] -
         zbus[:qnt_bus, qnt_bus:].dot(
@@ -116,6 +125,7 @@ def kron_reduc(zbus):
 
 
 def model_bus(data):
+    # Função principal para montar a zbus positiva-negativa-zero
     bus = np.zeros((qnt_bus, qnt_bus))
     already_bars = set()
     file_aux = 0
@@ -157,6 +167,7 @@ def model_bus(data):
 
 # Faltas
 def trifasico(pos_neg, ref_bus, impedancias):
+    # Falta trifásica
     index_zbus = de_para[ref_bus]['n_bar'] - 1
 
     icc = 1 / (pos_neg[index_zbus][index_zbus])
@@ -177,6 +188,7 @@ def trifasico(pos_neg, ref_bus, impedancias):
 
 
 def monofasica(pos_neg, zero, ref_bus, impedancias, zf=0):
+    # Falta monofásica
     index_zbus = de_para[ref_bus]['n_bar'] - 1
 
     ia_seq = 1/(
@@ -200,6 +212,7 @@ def monofasica(pos_neg, zero, ref_bus, impedancias, zf=0):
 
 
 def bifasica(pos_neg, ref_bus, impedancias, zf=0):
+    # Falta bifásica
     index_zbus = de_para[ref_bus]['n_bar'] - 1
 
     ia_seq = 1/(
@@ -226,6 +239,7 @@ def bifasica(pos_neg, ref_bus, impedancias, zf=0):
 
 
 def bifasica_terra(pos_neg, zero, ref_bus, impedancias):
+    # Falta bifásica-terra
     index_zbus = de_para[ref_bus]['n_bar'] - 1
 
     zkk_p = pos_neg[index_zbus][index_zbus]
@@ -263,6 +277,7 @@ def bifasica_terra(pos_neg, zero, ref_bus, impedancias):
 
 
 def fortescue(tensoes):
+    # Transformação de fortescue (sequencia -> fase)
     tensoes_fase = np.zeros((qnt_bus, 3))
 
     for t in range(qnt_bus):
@@ -280,6 +295,7 @@ def fortescue(tensoes):
 
 
 def correntes(tensoes, impedancias):
+    # Função para calculo das correntes de linha
     corrente = {}
     corrente_fase = {}
     for key, items in impedancias.items():
